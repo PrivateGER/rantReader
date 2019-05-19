@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>rantReader</title>
+    <style>
+        html {
+            background-color: #222222;
+        }
+
+        .rantlist {
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            overflow: hidden;
+            display: block;
+            list-style-type: none;
+            font-size: 20px;
+            color: #FFFFFF;
+        }
+
+        .rants {
+            margin-left: 20px;
+        }
+
+        .rant {
+            border-bottom: 1px solid #FFFFFF;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="rants">
+    <ul class="rantlist" id="rantlist">
+        <li class="rant">
+            <p>RantReader</p>
+        </li>
+    </ul>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    let rantCount = 0;
+    let polling = false;
+	var socket = io();
+
+	function addRants(type = "algo") {
+		socket.emit("new rants with offset", {"offset": rantCount, "sortBy": type});
+    }
+
+    function addRandomRant() {
+		socket.emit("random rant");
+    }
+
+    function displayRant(rant) {
+		let li = document.createElement("li");
+		li.classList = "rant";
+
+		let author = document.createElement("p");
+		author.innerText = rant.user_username;
+		author.classList = "rant_author";
+		li.appendChild(author);
+
+		li.appendChild(document.createTextNode(rant.text));
+
+		if(rant.attached_image !== "") {
+			li.appendChild(document.createElement("br"));
+			let img = document.createElement("img");
+			img.src = rant.attached_image.url;
+			li.appendChild(img);
+			li.appendChild(document.createElement("br"));
+			li.appendChild(img);
+		}
+
+		document.getElementById("rantlist").appendChild(li);
+    }
+
+    socket.on("rant", (msg) => {
+    	console.log(msg);
+        displayRant(msg);
+    });
+
+	socket.on('rants', (msg) => {
+		rantCount += 20;
+		console.log(msg);
+		msg.forEach((rant) => {
+            displayRant(rant);
+		});
+		polling = false;
+	});
+
+	function getDistFromBottom () {
+		let scrollPosition = window.pageYOffset;
+		let windowSize     = window.innerHeight;
+		let bodyHeight     = document.body.offsetHeight;
+
+		return Math.max(bodyHeight - (scrollPosition + windowSize), 0);
+	}
+
+	document.addEventListener("scroll", () => {
+		if(getDistFromBottom() < 1500 && !polling) {
+			polling = true;
+			addRants();
+        }
+    });
+
+	addRants();
+</script>
+</body>
+</html>
